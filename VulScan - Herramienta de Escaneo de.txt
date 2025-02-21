@@ -1,0 +1,186 @@
+ VulScan - Herramienta de Escaneo de Vulnerabilidades
+
+VulScan es una aplicación escrita en Python que integra varias herramientas de análisis (nmap, Nikto, Wapiti) y la API de ChatGPT para generar un reporte PDF con un estilo minimalista (similar a iOS/Apple). A continuación se describen los pasos necesarios para su instalación y ejecución en Windows, Linux y macOS.
+
+
+
+ 1. Requisitos del Sistema
+
+- Python 3.10 o superior.  
+- Conexión a Internet (para usar la API de ChatGPT y descargar dependencias).  
+- Herramientas externas:  
+  - nmap (para escaneo de puertos).  
+  - Nikto (para escaneo de vulnerabilidades web).  
+  - Wapiti (para escaneo de vulnerabilidades web en formato JSON).  
+- Fuente SF Pro (opcional) si deseas el estilo iOS exacto. Puedes usar otra fuente o la por defecto.  
+- Cuenta de OpenAI con API Key válida para usar ChatGPT.  
+- Permisos de ejecución para nmap, nikto y wapiti (instalados en el PATH del sistema).
+
+
+
+ 2. Preparar Variables de Entorno
+
+Debes contar con un archivo `.env` o configurar tus variables de entorno para incluir:
+
+
+OPENAI_API_KEY="sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+VULNERS_API_KEY="IDO3MFBWSR0A..."   (opcional, si usas la API de vulners)
+
+
+Asegúrate de que el archivo `.env` esté en el mismo directorio que los scripts de VulScan y que uses `load_dotenv()` para cargar las variables.
+
+
+
+ 3. Instalación de Dependencias
+
+ 3.1. Paquetes de Python
+
+VulScan depende de las siguientes librerías:
+- `python-nmap`
+- `vulners`
+- `openai`
+- `reportlab`
+- `tqdm`
+- `python-dotenv`
+
+Opcionalmente, podrías usar `textwrap` (módulo estándar de Python) y otras librerías según tu configuración. 
+
+Comando único para instalar todo (en cualquier SO con Python 3.10+):
+
+pip install python-nmap vulners openai reportlab tqdm python-dotenv
+
+
+ 3.2. Herramientas Externas
+
+- nmap  
+- Nikto  
+- Wapiti  
+
+En Linux (Debian/Ubuntu):
+
+sudo apt update
+sudo apt install -y nmap nikto wapiti
+
+
+En Linux (CentOS/RHEL/Fedora):
+
+sudo dnf install -y nmap nikto wapiti
+
+*(o `yum` en versiones antiguas)*
+
+En macOS (usando [Homebrew](https://brew.sh/)):
+
+brew update
+brew install nmap nikto wapiti
+
+
+En Windows:
+- nmap: Descarga desde [https://nmap.org/download.htmlwindows](https://nmap.org/download.htmlwindows).  
+- Nikto: Instálalo desde [https://github.com/sullo/nikto](https://github.com/sullo/nikto) (requiere Perl). O usa [Chocolatey](https://chocolatey.org/) si está disponible.  
+- Wapiti: Se instala con `pip install wapiti` y, opcionalmente, configuras en PATH.  
+  - Ten en cuenta que, en Windows, algunas funciones de Wapiti/Nikto podrían requerir ajustes adicionales.
+
+*(Si deseas un entorno más sencillo en Windows, se recomienda usar WSL para correr Linux dentro de Windows.)*
+
+
+
+ 4. Fuente SF Pro (Opcional)
+
+Si quieres el estilo iOS/Apple con la tipografía de Apple, descarga la fuente “SF Pro” desde la [página de Apple para desarrolladores](https://developer.apple.com/fonts/). Coloca el archivo `SFPro-Regular.ttf` (y `SFPro-Semibold.ttf`, si lo tienes) en una carpeta `fonts/` en el directorio del proyecto.  
+Si no cuentas con la fuente, el código usará `Helvetica` o la fuente que definas.
+
+
+
+ 5. Ejecución
+
+1. Clona o copia el proyecto VulScan en tu sistema.  
+2. Crea y activa un entorno virtual (recomendado):
+   
+   python -m venv venv
+   source venv/bin/activate      Linux/macOS
+   venv\Scripts\activate         Windows
+   
+3. Instala dependencias:
+   
+   pip install -r requirements.txt
+   
+   *(o usa el comando único `pip install python-nmap vulners openai reportlab tqdm python-dotenv`)*
+
+4. Configura tu `.env` con `OPENAI_API_KEY`.
+
+5. Verifica que nmap, nikto y wapiti estén instalados y en el PATH.
+
+6. Ejecuta la aplicación:
+   
+   python3 VulScan.py
+   
+   *(En Windows podrías usar `python VulScan.py`.)*
+
+
+
+ 6. Uso
+
+Al correr `python3 VulScan.py`, se mostrará un menú:
+
+=== Menú Principal ===
+1. Escaneo de red (nmap)
+2. Escaneo de una página web (Nikto y Wapiti)
+3. Salir
+Seleccione una opción:
+
+
+- Opción 1: Pide una IP/host y ejecuta nmap, generando un reporte PDF con resultados de puertos.  
+- Opción 2: Pide una URL y ejecuta nmap (sobre el host), Nikto y Wapiti, luego genera un PDF con los hallazgos y análisis de ChatGPT.
+
+El PDF se guardará con un nombre similar a `reporte_{host}.pdf` en la carpeta actual.
+
+
+
+ 7. Funcionamiento Interno
+
+1. Escaneo de Puertos (nmap):  
+   Se ejecuta `nmap -sV` para detectar puertos abiertos y servicios, guardando la salida.  
+
+2. Nikto:  
+   Se corre `nikto -h <URL>` para detectar vulnerabilidades web.  
+
+3. Wapiti:  
+   Genera un archivo JSON con los hallazgos de seguridad. Se lee y se añade al PDF.  
+
+4. ChatGPT:  
+   Cada resultado (nmap, Nikto, Wapiti) se pasa como prompt a la API de ChatGPT para obtener un análisis y recomendaciones.  
+
+5. Reporte PDF:  
+   Usando ReportLab, se construye un PDF con la salida de las herramientas, el análisis de ChatGPT y un “puntaje” basado en la cantidad de vulnerabilidades.
+
+
+
+ 8. Solución de Problemas
+
+- Error "Flowable ... too large":  
+  Se corrige dividiendo el texto de ChatGPT en líneas más cortas (`textwrap.wrap`) y permitiendo que las tablas se dividan por fila (`splitByRow=1`), o simplemente añadiendo cada línea como un Paragraph separado.  
+
+- No se encuentra la fuente SF Pro:  
+  Se usará la fuente por defecto (Helvetica) si no está la carpeta `fonts/`.  
+
+- API Key de OpenAI inválida o sin cuota:  
+  El programa mostrará errores 429. Revisa tu [uso y facturación](https://platform.openai.com/account/usage).  
+
+- nmap, nikto o wapiti no encontrados:  
+  Asegúrate de instalarlos y que estén en el PATH del sistema.
+
+
+
+ 9. Comando Único de Instalación
+
+Si deseas un solo comando para instalar Python y herramientas en Linux (Debian/Ubuntu), podrías usar:
+
+
+sudo apt update && \
+sudo apt install -y python3 python3-pip python3-venv nmap nikto wapiti && \
+pip3 install python-nmap vulners openai reportlab tqdm python-dotenv
+
+
+*(Ajusta según tu distribución y preferencias. En Windows y macOS, no existe un comando único igual de simple, pero el proceso es similar.)*
+
+
